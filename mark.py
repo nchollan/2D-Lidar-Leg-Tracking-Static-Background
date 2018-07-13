@@ -45,7 +45,7 @@ def makeMarker(markerId,r,g,b,x,y):
 	marker.pose.position.y=y
 	return marker
 
-#Input: int, int, int, int, dbl, dbl
+#Input: int, int, int, int, Points[]
 #		markerId = integer to represent a unique Marker()
 #		r = integer to represent red color
 #		g = integer to represent green color
@@ -110,7 +110,7 @@ def callback(data):
 				if(distanceTo(j,avgPos)<legsThreshold):
 					legs.append(j)
 			pubMarker.publish(makeSphereList(4,0,0,1,legs))
-			
+
 #Initialize node and subscriber
 def mark():
 	rospy.init_node('mark', anonymous=True) 
