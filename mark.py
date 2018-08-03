@@ -5,24 +5,48 @@ from sensor_msgs.msg import LaserScan
 from visualization_msgs.msg import Marker
 from geometry_msgs.msg import Point
 
+#This code was designed to track a single moving person, walking in a static environment
+#using a Hokuyo lidar.
+
+#In order for this method of tracking to work, the lidar must first scan the room without
+#any movement to set the baseline for what isn't considered movement. After the first frame
+#is acquired it will be used to visualize any change(ie the person being tracked)
+
+#Rostopics
+#Subscribed: /scan (LaserScan)
+#Publishing: /visualization_marker (Marker)
+#			 /visualization_marker2 (Marker)
+
 numMsgs=0				#Keeps track of how many scan messages have been received
 f1=[]					#The first scan frame on startup
-movementThreshold=0.5	#How far should a point be from where it was in frame 1 before its considered a moving object
-legsThreshold=0.6		#How far away from the average of all moving points should a persons legs be
-pubMarker = rospy.Publisher('visualization_marker',Marker, queue_size=1000)#Publisher for the markers
-pubMarker2 = rospy.Publisher('visualization_marker2',Marker, queue_size=1000)
+
+#Thresholds
+#!!!These values worked for our application but may need modified for yours!!!
+movementThreshold=0.5	#How far should a point be from where it was in frame 1 before its considered a moving object (Helps filter out sensor noise)
+legsThreshold=0.6		#How far away from the average of all moving points should a persons legs be (Helps filter out sensor noise)
+
+#Publishers
+pubMarker = rospy.Publisher('visualization_marker',Marker, queue_size=1000)#Publisher for moving points
+pubMarker2 = rospy.Publisher('visualization_marker2',Marker, queue_size=1000)#Publisher for average of moving points
+
+#Average moving position points
 pt1=Point()
 pt2=Point()
+
+#Used to calculate speed of moving person
 moveCnt=0
 start=0
 end=0
-# avgPos = Point()
-# prevAvgPos=Point()
+speedTotal=0
 
-outfile=open('lidarData.csv','w')
-# outfile1=open('lidarYData.csv','w')
+#Used to calculate average frequency of recorded data
+totalTimeBtwn=0
+avgTimeBtwn=0			
+timeBtwnCnt=0
+
+#CSV file for recording lidar data into
+outfile=open('lidarData1.csv','w')
 writer = csv.writer(outfile)
-# writer1 = csv.writer(outfile1)
 
 #Input:  Point(), Point()
 #		pt1 = The first Point()
@@ -86,7 +110,7 @@ def makeSphereList(markerId,r,g,b,pts):
 #		data = LaserScan Data
 #Output: None
 def callback(data):
-	global numMsgs, f1, movementThreshold, pubMarker, pubMarker2, moveCnt, pt1, pt2, start, end #,legsThreshold
+	global numMsgs, f1, movementThreshold, pubMarker, pubMarker2, moveCnt, pt1, pt2, start, end, speedTotal, totalTimeBtwn, timeBtwnCnt, writer ,legsThreshold
 	numMsgs+=1	 								#Keeps track of how many scan messages have been received
 	if(numMsgs==1):
 		f1=data.ranges 							#Grab the first frame on startup to use 
@@ -107,18 +131,13 @@ def callback(data):
 				positionsXY.append(movePoint)
 			k+=0.00218022723 					#Lidar range = -1.65806281567 to 1.65806281567
 							 					#k = 2*1.65806281567/len(data.ranges)
-		if(len(positionsXY)>0):
-			moveCnt+=1
-			#Calculate the average x,y position of all movement
-			# avgPos.x = xTot/len(positionsXY)
-			# avgPos.y = yTot/len(positionsXY)
-			# start = time.time()
-			# if(numMsgs%2==0):
-			# 	end=time.time()
-			# 	timeBtwn=end-start
-			# 	distanceBtwn=distanceTo(avgPos,prevAvgPos)
-			# 	speed=distanceBtwn/timeBtwn
-			# 	prevAvgPos = avgPos
+		if(len(positionsXY)>0):					#Make sure that something is moving in the frame
+			moveCnt+=1		
+
+			#Calculate the speed of the person in the frame
+			#Take average of all moving points as the position of the person
+			#Current average position - Previous average position
+			#End time - Start time to determine how fast the distance between positions was traveled					
 			if(moveCnt==1):
 				pt1.x = xTot/len(positionsXY)
 				pt1.y = yTot/len(positionsXY)
@@ -130,16 +149,13 @@ def callback(data):
 				timeBtwn=end-start
 				distanceBtwn=distanceTo(pt1,pt2)
 				speed=distanceBtwn/timeBtwn
-				writer.writerow([end,speed])
-				#print([end,speed])
-				# d=math.sqrt((pt2.x-pt1.x)**2+(pt2.y-pt1.y)**2)
-				# odom.header.stamp=rospy.Time.now()
-				# odom.pose.pose.position.x=pt2.x
-				# odom.pose.pose.position.y=pt2.y
-				# if(d>0):
-				# 	odom.twist.twist.linear.x=(speed/d)*(pt2.x-pt1.x)
-				# 	odom.twist.twist.linear.y=(speed/d)*(pt2.y-pt1.y)
-				# pub.publish(odom)
+				print([end,speed])
+				totalTimeBtwn+=timeBtwn
+				timeBtwnCnt+=1
+				speedTotal+=speed
+				avgSpeed=(speedTotal/timeBtwnCnt)
+				if(abs(speed-avgSpeed)<5):
+					writer.writerow([end,speed])#+1
 				pt1.x=pt2.x
 				pt1.y=pt2.y
 				start=time.time()
@@ -147,7 +163,7 @@ def callback(data):
 
 			# Calculate what movement should be classified as 
 			# the legs based on the distance a moving point is 
-			#from the average movement point
+			# from the average movement point
 			j=Point()
 			legs=[]
 			for j in positionsXY:
@@ -160,5 +176,11 @@ def mark():
 	rospy.init_node('mark', anonymous=True) 
 	rospy.Subscriber('/scan', LaserScan, callback)
 	rospy.spin()
+
+	#Write what the average recording frequency was for the lidar data collected to a CSV (Used for syncronization)
+	f=open('lidarFreq1.csv','w')
+	w = csv.writer(f)
+	w.writerow([totalTimeBtwn/timeBtwnCnt])
+
 if __name__ == '__main__':
     mark()
