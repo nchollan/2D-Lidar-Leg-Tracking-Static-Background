@@ -15,6 +15,7 @@ from pythonosc import udp_client, dispatcher, osc_server
 #The original source code for python-osc pakage was modified to provide 
 #additional utility
 
+csvNumber='3'
 
 def process_arguments(argv):
 	parser = argparse.ArgumentParser(description="NGIMU python example")
@@ -58,7 +59,7 @@ def main(argv):
 	global flag, outfile, writer, prevTime, totalTimeBtwn, timeBtwnCnt
 	totalTimeBtwn=0						#Sums up the time between each message being recorded
 	timeBtwnCnt=0						#Counts how many times a message has been recorded
-	outfile=open('imuData1.csv','w')	#CSV for storing data recieved from the imu
+	outfile=open('imuData' + csvNumber + '.csv','w')	#CSV for storing data recieved from the imu
 	writer = csv.writer(outfile)
 	flag=False							#Flag for a button press on the imu, used to start and stop recording data
 
@@ -74,11 +75,10 @@ def main(argv):
 				totalTimeBtwn+=timeBtwn
 				timeBtwnCnt+=1
 				prevTime=t
-				
 			#Record data to CSV
 			writer.writerow([t,math.sqrt(ax**2+ay**2+az**2)])
 
-	def setFLag(add, time):
+	def setFLag(add, t):
 		global flag
 		flag = not flag
 		print('Flag', flag)
@@ -105,10 +105,9 @@ def main(argv):
 			time.sleep(1)
 
 	except KeyboardInterrupt :
-		f=open('imuFreq1.csv','w')
+		f=open('imuFreq' + csvNumber + '.csv','w')
 		w = csv.writer(f)
-		var=totalTimeBtwn/timeBtwnCnt
-		w.writerow([var])
+		w.writerow([totalTimeBtwn/timeBtwnCnt])
 		server.shutdown()
 		server_thread.join()
 		return 0
