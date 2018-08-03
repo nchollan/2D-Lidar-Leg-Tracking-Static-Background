@@ -1,12 +1,19 @@
 #!usr/bin/env python3
-import os, signal, subprocess, time, socket, threading, sys, argparse, csv, math #,rospy
+import time, socket, threading, sys, argparse, csv, math #,rospy
 import numpy as np
 from pythonosc import udp_client, dispatcher, osc_server
-#from sensor_msgs.msg import Imu
 
-global proc
+#This code was designed to receive and log information from OSC packets
+#being sent from an NGIMU(http://x-io.co.uk/ngimu/)
+
+#In their documentation x-io has python example code, the OSC python
+#package they used in this example is no longer supported, instead
+#https://github.com/xioTechnologies/NGIMU-Python-Example/pull/1/files
+#was referenced to make use of the python-osc package
 
 
+#The original source code for python-osc pakage was modified to provide 
+#additional utility
 
 
 def process_arguments(argv):
@@ -41,63 +48,43 @@ def get_address():
         address = s.getsockname()[0]
     return address
 def main(argv):
-	#rospy.init_node('imuListener', anonymous=True)
-	#pub = rospy.Publisher('/imuReadings',Imu, queue_size=1000)
 	args = process_arguments(argv)
-
 	# Set the NGIMU to send to this machine's IP address
 	client = udp_client.SimpleUDPClient(args.ip, args.port)
 	client.send_message('/wifi/send/ip', get_address())
 	client.send_message('/wifi/send/port', args.receive_port)
 	
 	#CSV file setup
-	global flag, outfile, writer, proc
-	outfile=open('imuData.csv','w')
+	global flag, outfile, writer, prevTime, totalTimeBtwn, timeBtwnCnt
+	totalTimeBtwn=0						#Sums up the time between each message being recorded
+	timeBtwnCnt=0						#Counts how many times a message has been recorded
+	outfile=open('imuData1.csv','w')	#CSV for storing data recieved from the imu
 	writer = csv.writer(outfile)
-	flag=False
-
-	#Imu
-	#global imu
-	#imu = Imu()
+	flag=False							#Flag for a button press on the imu, used to start and stop recording data
 
 	def sensorsHandler(t, add, gx, gy, gz, ax, ay, az, mx, my, mz, b):
-		global flag#,imu
+		global flag,prevTime,totalTimeBtwn,timeBtwnCnt
 		if(flag):
+			#Used to calculate average frequency of messages being received
+			if(timeBtwnCnt==0):
+				prevTime=t
+				timeBtwnCnt+=1
+			else:
+				timeBtwn=t-prevTime
+				totalTimeBtwn+=timeBtwn
+				timeBtwnCnt+=1
+				prevTime=t
+				
+			#Record data to CSV
 			writer.writerow([t,math.sqrt(ax**2+ay**2+az**2)])
-			#print('{} {} g[{},{},{}] a[{},{},{}] m[{},{},{}] b[{}]'.format(t, add, gx, gy, gz, ax, ay, az, mx, my, mz, b))
-			# imu.header.stamp=rospy.Time.now()
-			# imu.angular_velocity.x=gx
-			# imu.angular_velocity.y=gy
-			# imu.angular_velocity.z=gz
-			# imu.linear_acceleration.x=ax
-			# imu.linear_acceleration.y=ay
-			# imu.linear_acceleration.z=az
-			#pub.publish(imu)
-
-	
-	# def quaternionHandler(t, add, x, y, z, w):
-	# 	global flag,imu
-	# 	if(flag):
-	# 		imu.orientation.x=x
-	# 		imu.orientation.y=y
-	# 		imu.orientation.z=z
-	# 		imu.orientation.w=w
-	# 		#writer.writerow([t, add, x, y, z, w])
-	# 		#print('{} {} [{},{},{},{}]'.format(t, add, x, y, z, w))
 
 	def setFLag(add, time):
-		global flag, proc
+		global flag
 		flag = not flag
-		if(flag):
-			print("Made it")
-			proc=subprocess.Popen('rosrun mypkg1 mark.py',shell=True)
-		else:
-			proc.kill()
 		print('Flag', flag)
 
 	dispatch = dispatcher.Dispatcher()
 	dispatch.map('/sensors', sensorsHandler)
-	#dispatch.map('/quaternion',quaternionHandler)
 	dispatch.map('/button',setFLag)
 
 	# Set up receiver
@@ -109,6 +96,7 @@ def main(argv):
 
 	# Start OSCServer
 	server_thread = threading.Thread(target=server.serve_forever)
+	prevTime=time.time()
 	server_thread.start()
 
 	# Loop while threads are running
@@ -117,6 +105,10 @@ def main(argv):
 			time.sleep(1)
 
 	except KeyboardInterrupt :
+		f=open('imuFreq1.csv','w')
+		w = csv.writer(f)
+		var=totalTimeBtwn/timeBtwnCnt
+		w.writerow([var])
 		server.shutdown()
 		server_thread.join()
 		return 0
