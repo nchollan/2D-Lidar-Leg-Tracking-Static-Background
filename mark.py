@@ -38,6 +38,7 @@ moveCnt=0
 start=0
 end=0
 speedTotal=0
+prevSpeed=0
 
 #Used to calculate average frequency of recorded data
 totalTimeBtwn=0
@@ -45,7 +46,8 @@ avgTimeBtwn=0
 timeBtwnCnt=0
 
 #CSV file for recording lidar data into
-outfile=open('lidarData1.csv','w')
+csvNumber='3'
+outfile=open('lidarData' + csvNumber + '.csv','w')
 writer = csv.writer(outfile)
 
 #Input:  Point(), Point()
@@ -110,7 +112,7 @@ def makeSphereList(markerId,r,g,b,pts):
 #		data = LaserScan Data
 #Output: None
 def callback(data):
-	global numMsgs, f1, movementThreshold, pubMarker, pubMarker2, moveCnt, pt1, pt2, start, end, speedTotal, totalTimeBtwn, timeBtwnCnt, writer ,legsThreshold
+	global numMsgs, f1, movementThreshold, pubMarker, pubMarker2, moveCnt, pt1, pt2, start, end, speedTotal, totalTimeBtwn, timeBtwnCnt, writer ,legsThreshold, prevSpeed
 	numMsgs+=1	 								#Keeps track of how many scan messages have been received
 	if(numMsgs==1):
 		f1=data.ranges 							#Grab the first frame on startup to use 
@@ -142,6 +144,7 @@ def callback(data):
 				pt1.x = xTot/len(positionsXY)
 				pt1.y = yTot/len(positionsXY)
 				start=time.time()
+				prevSpeed=0
 			else:
 				pt2.x=xTot/len(positionsXY)
 				pt2.y=yTot/len(positionsXY)
@@ -149,16 +152,17 @@ def callback(data):
 				timeBtwn=end-start
 				distanceBtwn=distanceTo(pt1,pt2)
 				speed=distanceBtwn/timeBtwn
-				print([end,speed])
+				print([end,(speed-prevSpeed)/timeBtwn])
 				totalTimeBtwn+=timeBtwn
 				timeBtwnCnt+=1
 				speedTotal+=speed
 				avgSpeed=(speedTotal/timeBtwnCnt)
-				if(abs(speed-avgSpeed)<5):
-					writer.writerow([end,speed])#+1
+				if(abs(speed-avgSpeed)<5): #Filter out large spikes in speed
+					writer.writerow([end,(speed-prevSpeed)/timeBtwn])
 				pt1.x=pt2.x
 				pt1.y=pt2.y
 				start=time.time()
+				prevSpeed=speed
 			pubMarker2.publish(makeMarker(1,1,1,1,pt1.x,pt1.y))
 
 			# Calculate what movement should be classified as 
@@ -178,7 +182,7 @@ def mark():
 	rospy.spin()
 
 	#Write what the average recording frequency was for the lidar data collected to a CSV (Used for syncronization)
-	f=open('lidarFreq1.csv','w')
+	f=open('lidarFreq' + csvNumber + '.csv','w')
 	w = csv.writer(f)
 	w.writerow([totalTimeBtwn/timeBtwnCnt])
 
