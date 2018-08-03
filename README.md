@@ -25,12 +25,16 @@ Codename:	xenial
 
 Step 1: 
         Install ROS (For this application ros-kinetic is being used)
+        
 Step 2: 
         Install all python dependencies (Probably easiest to create a python3 virtualenv for python3 dependencies)
+
 Step 3: 
         Modify python-osc (Reference python-osc folder in this project)
+
 Step 4: 
         Power up the Hokuyo UXM-30LX-EW and connect it to the computer
+
 Step 5:  
         Map wired connection IP (This is the Lidar)
         Go to your network connections,
@@ -43,35 +47,47 @@ Step 5:
         Address=192.168.0.15
         Netmask=24
         Gateway=192.168.0.1
+
 Step 6:
         Setup network so that you can receive data from ethernet port and over wifi
+        https://askubuntu.com/questions/639100/how-to-get-connection-to-both-wifi-as-well-as-lan-in-ubuntu-14-04-lts
+
 Step 5:
         Power on the NGIMU
         Connect to it and the Hokuyo UXM-30LX-EW 
+
 Step 6:
         Run roscore
+
 Step 7:
         Run rosrun urg_node urg_node _ip_address:=192.168.0.10
+
 Step 8:
         Run rosrun rviz rviz
+
 Step 9:
         create a catkin workspace
         cd to your catkin workspace
         clone files (excluding python-osc folder) into that workspace
+
 Step 10:
         Make sure you are in your workspace
         Run python3 imuListener.py
+
 Step 11:
         Make sure you are in your workspace
         Make sure the lidar is positioned properly and won't "see" any movement upon running mark.py
         Run rosrun <Workspace> mark.py
+
 Step 12:
         Click the button on the NGIMU
         Then walk into the lidar's view
         !!Stand still for 3 seconds or so, there is a running average of your location being taken to reduce outliers!!
+
 Step 13:
         Ctrl+C mark.py
         Ctrl+C imuListener.py (Pressing the button will stop data logging but this will write all the necessary CSV's)
+
 Step 14:
         Make sure you are in your workspace
         Run rosrun <Workspace> dataGrabber.py
