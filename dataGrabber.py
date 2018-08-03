@@ -4,10 +4,12 @@ import numpy as np
 from numpy import genfromtxt
 import matplotlib.pyplot as plt
 
-imu_freq = genfromtxt('imuFreq1.csv')
-lidar_freq = genfromtxt('lidarFreq1.csv')
-imu_data = genfromtxt('imuData1.csv', delimiter=',')
-lidar_data = genfromtxt('lidarData1.csv', delimiter=',')
+csvNumber='3'
+
+imu_freq = genfromtxt('imuFreq' + csvNumber + '.csv')
+lidar_freq = genfromtxt('lidarFreq' + csvNumber + '.csv')
+imu_data = genfromtxt('imuData' + csvNumber + '.csv' , delimiter=',')
+lidar_data = genfromtxt('lidarData' + csvNumber + '.csv', delimiter=',')
 x,y=zip(*imu_data)
 x1,y1=zip(*lidar_data)
 
