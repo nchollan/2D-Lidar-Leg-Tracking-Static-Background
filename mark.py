@@ -158,7 +158,7 @@ def callback(data):
 				speedTotal+=speed
 				avgSpeed=(speedTotal/timeBtwnCnt)
 				if(abs(speed-avgSpeed)<5): #Filter out large spikes in speed
-					writer.writerow([end,(speed-prevSpeed)/timeBtwn])
+					writer.writerow([end,math.sqrt(((speed-prevSpeed)/timeBtwn)**2)])
 				pt1.x=pt2.x
 				pt1.y=pt2.y
 				start=time.time()
