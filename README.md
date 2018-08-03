@@ -3,14 +3,18 @@
 The purpose of this project was to track and log position and velocity information of a person walking in a static environment using a Hokuyo lidar while simultaneously logging imu data from an NGIMU strapped to the persons shoe, and afterwords syncronizing the logged data.
 
 Hardware:
+
 NGIMU (http://x-io.co.uk/ngimu/)
+
 Hokuyo UXM-30LX-EW (https://www.hokuyo-aut.jp/search/single.php?serial=171)
 
 Software:
+
 Python3 was used for imuListener.py in order to integrate python-osc
 Python2 was used for everything else
 
 Notes:
+
 -A python-osc folder has been included because modifications are necessary to the original source code, for this application to work
 
 !!!The log files will just overwrite eachother the way they are currently being implmented!!!
